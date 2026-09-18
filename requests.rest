@@ -1,0 +1,184 @@
+# ==========================================
+# Auth Endpoints
+# ==========================================
+
+### 1. Register (Success) - 201
+# @name registerCompany1
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "hr@techcorp.com",
+  "password": "strongpassword123",
+  "companyName": "Tech Corp",
+  "companyIndustry": "Software",
+  "companyLocation": "Cairo"
+}
+
+### 2. Register Duplicate - 409
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "hr@techcorp.com",
+  "password": "anotherpassword",
+  "companyName": "Tech Corp Duplicate"
+}
+
+### 3. Register Invalid Data - 400
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "not-an-email",
+  "password": "123", 
+  "companyName": ""
+}
+
+### 4. Register Empty Body - 400
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{}
+
+### 5. Login (Success) - 200
+# @name loginCompany1
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "hr@techcorp.com",
+  "password": "strongpassword123"
+}
+
+### 6. Login Wrong Password - 401
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "hr@techcorp.com",
+  "password": "wrongpassword"
+}
+
+### 7. Register Second Company - 201
+# @name loginCompany2
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "jobs@startup.io",
+  "password": "startup_password",
+  "companyName": "Startup IO"
+}
+
+
+# ==========================================
+# Job Endpoints
+# ==========================================
+
+@token1 = {{loginCompany1.response.body.token}}
+@token2 = {{loginCompany2.response.body.token}}
+
+### 8. Create Job - 201
+# @name createJob1
+POST http://localhost:3000/api/jobs
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "jobTitle": "Senior Backend Developer",
+  "jobType": "fullTime",
+  "jobWorkPlaceType": "hybrid",
+  "jobDescription": "Looking for an experienced Node.js developer.",
+  "jobLocation": "Cairo",
+  "jobIndustry": "Software",
+  "jobApplicationDeadline": "2026-12-31"
+}
+
+### 9. Create Job Invalid Enums - 400
+POST http://localhost:3000/api/jobs
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "jobTitle": "Frontend Developer",
+  "jobType": "freelance", 
+  "jobWorkPlaceType": "moon", 
+  "jobDescription": "React developer needed.",
+  "jobApplicationDeadline": "2026-12-31"
+}
+
+### 10. Create Job No Token - 401
+POST http://localhost:3000/api/jobs
+Content-Type: application/json
+
+{
+  "jobTitle": "Frontend Developer",
+  "jobType": "fullTime",
+  "jobWorkPlaceType": "remote",
+  "jobDescription": "React developer needed.",
+  "jobApplicationDeadline": "2026-12-31"
+}
+
+### 11. Create Job Past Deadline - 400
+POST http://localhost:3000/api/jobs
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "jobTitle": "Expired Job",
+  "jobType": "fullTime",
+  "jobWorkPlaceType": "onsite",
+  "jobDescription": "This deadline already passed.",
+  "jobApplicationDeadline": "2020-01-01T00:00:00Z"
+}
+
+### 12. Update Job (Success) - 200
+@jobId = {{createJob1.response.body.data._id}}
+
+PATCH http://localhost:3000/api/jobs/{{jobId}}
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "jobStatus": "completed",
+  "jobSkills": ["Node.js", "Express", "MongoDB"]
+}
+
+### 13. Update Job No Token - 401
+PATCH http://localhost:3000/api/jobs/{{jobId}}
+Content-Type: application/json
+
+{
+  "jobTitle": "No Auth Update"
+}
+
+### 14. Update Job Ownership Check - 404
+PATCH http://localhost:3000/api/jobs/{{jobId}}
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "jobTitle": "Hacked Title"
+}
+
+
+# ==========================================
+# Search Endpoints
+# ==========================================
+
+### 15. Search Jobs (Public) - 200
+GET http://localhost:3000/api/jobs?location=Cairo&industry=Software&sortBy=newest&limit=5
+
+### 16. Search Jobs Text - 200
+GET http://localhost:3000/api/jobs?search=Node.js
+
+### 17. Search Jobs Invalid Pagination - 200
+GET http://localhost:3000/api/jobs?page=abc&limit=-50
+
+### 18. Search Jobs by Status - 200
+GET http://localhost:3000/api/jobs?status=completed
+
+### 19. Search Jobs with Token - 200
+GET http://localhost:3000/api/jobs?location=Cairo
+Authorization: Bearer {{token1}}
